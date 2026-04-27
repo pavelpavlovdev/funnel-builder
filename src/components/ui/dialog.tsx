@@ -22,14 +22,55 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+function isInsidePortaledPopup(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  let el: Element | null = target
+  while (el) {
+    // Radix portal markers
+    if (el.hasAttribute("data-radix-popper-content-wrapper")) return true
+    const dataAttrs = ["data-radix-select-content", "data-radix-select-viewport",
+      "data-radix-dropdown-menu-content", "data-radix-popover-content",
+      "data-radix-menu-content", "data-radix-tooltip-content",
+      "data-radix-portal"] as const
+    for (const a of dataAttrs) {
+      if (el.hasAttribute(a)) return true
+    }
+    // ARIA role-based detection (covers Radix Select listbox, etc.)
+    const role = el.getAttribute("role")
+    if (role === "listbox" || role === "menu" || role === "menuitem" ||
+        role === "option" || role === "tooltip" || role === "presentation") {
+      return true
+    }
+    // Sonner toast portal
+    if (el.hasAttribute("data-sonner-toaster")) return true
+    if (el.tagName === "BODY" || el.tagName === "HTML") break
+    el = el.parentElement
+  }
+  return false
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onPointerDownOutside={(e) => {
+        if (isInsidePortaledPopup(e.target)) {
+          e.preventDefault()
+          return
+        }
+        onPointerDownOutside?.(e)
+      }}
+      onInteractOutside={(e) => {
+        if (isInsidePortaledPopup(e.target)) {
+          e.preventDefault()
+          return
+        }
+        onInteractOutside?.(e)
+      }}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 bg-background border rounded-xl p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className

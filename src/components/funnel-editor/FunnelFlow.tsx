@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 import {
   ReactFlow,
   Background,
@@ -89,10 +89,29 @@ function buildFlowData(funnel: Funnel) {
 
 export function FunnelFlow({ funnel }: Props) {
   const { connectSteps, updateStep } = useFunnelStore()
-  const { nodes: initNodes, edges: initEdges } = useMemo(() => buildFlowData(funnel), [funnel])
+  const flowData = useMemo(() => buildFlowData(funnel), [funnel])
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState(flowData.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(flowData.edges)
+
+  const structuralKey = useMemo(
+    () =>
+      funnel.steps
+        .map(
+          (s) =>
+            `${s.id}:${s.pageId}:${s.nextStepId ?? "_"}/${s.upsellStepId ?? "_"}/${s.downsellStepId ?? "_"}`
+        )
+        .join("|"),
+    [funnel.steps]
+  )
+
+  useEffect(() => {
+    setNodes(flowData.nodes)
+    setEdges(flowData.edges)
+    // Re-sync ReactFlow when steps/edges change in the store (add, delete, connect).
+    // Position-only updates are excluded via structuralKey so dragging stays smooth.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [structuralKey])
 
   const onConnect = useCallback(
     (connection: Connection) => {

@@ -38,6 +38,8 @@ const ELEMENT_ICONS: Record<string, string> = {
   guarantee: "🛡️",
   social_proof: "👥",
   faq: "❓",
+  order_bump: "🎁",
+  exit_popup: "🚪",
 }
 
 export function ElementPanel({ funnelId, pageId, onElementAdded }: Props) {

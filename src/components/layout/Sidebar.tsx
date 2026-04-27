@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Globe,
   Users,
+  Megaphone,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/funnels", icon: Funnel, label: "Funnels" },
+  { href: "/ads", icon: Megaphone, label: "Ads" },
   { href: "/templates", icon: Layers, label: "Templates" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/domains", icon: Globe, label: "Domains" },

@@ -208,6 +208,36 @@ export const ELEMENTS: ElementDef[] = [
     },
     defaultStyle: { padding: "32px 24px" },
   },
+  {
+    type: "order_bump",
+    label: "Order Bump",
+    icon: "🎁",
+    category: "conversion",
+    defaultProps: {
+      headline: "YES! Add this to my order",
+      offer: "Bonus Resource Pack",
+      description: "30+ premium templates, scripts and swipe files. A perfect complement to your purchase.",
+      price: "27",
+      originalPrice: "97",
+      currency: "$",
+      accentColor: "#f59e0b",
+    },
+    defaultStyle: { padding: "16px 24px" },
+  },
+  {
+    type: "exit_popup",
+    label: "Exit-Intent Popup",
+    icon: "🚪",
+    category: "conversion",
+    defaultProps: {
+      headline: "Wait! Don't leave empty-handed",
+      subheadline: "Get 20% OFF your first order — today only.",
+      buttonText: "Yes, Send Me My Discount",
+      dismissText: "No thanks, I'll pay full price",
+      delaySeconds: 1,
+    },
+    defaultStyle: { padding: "0" },
+  },
 ]
 
 export const ELEMENT_CATEGORIES = [

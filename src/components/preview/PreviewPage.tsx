@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useFunnelStore } from "@/lib/store/funnel-store"
 import { ElementRenderer } from "@/components/page-builder/ElementRenderer"
-import type { FunnelPage } from "@/lib/types"
+import { PreviewContext } from "@/components/preview/PreviewContext"
+import { resolveVariant, clearVariantBucket } from "@/lib/ab-testing"
+import type { FunnelPage, FunnelStep } from "@/lib/types"
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, Monitor, Smartphone, Eye } from "lucide-react"
+import { ArrowLeft, ArrowRight, Monitor, Smartphone, Eye, FlaskConical, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Props {
@@ -13,23 +15,71 @@ interface Props {
   pageId: string | null
 }
 
+const VISIT_SESSION_KEY = "b4c:visited-funnels"
+
+function shouldRecordVisit(funnelId: string): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const raw = sessionStorage.getItem(VISIT_SESSION_KEY)
+    const visited: string[] = raw ? JSON.parse(raw) : []
+    if (visited.includes(funnelId)) return false
+    sessionStorage.setItem(VISIT_SESSION_KEY, JSON.stringify([...visited, funnelId]))
+    return true
+  } catch {
+    return true
+  }
+}
+
 export function PreviewPage({ funnelId, pageId }: Props) {
-  const { funnels, _hasHydrated } = useFunnelStore()
+  const { funnels, _hasHydrated, recordVisit, recordVariantVisit } = useFunnelStore()
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop")
+  const visitTrackedRef = useRef(false)
+  const variantTrackedRef = useRef<string | null>(null)
+  const [bucketTick, setBucketTick] = useState(0)
+
+  useEffect(() => {
+    if (!_hasHydrated || visitTrackedRef.current) return
+    visitTrackedRef.current = true
+    if (shouldRecordVisit(funnelId)) recordVisit(funnelId)
+  }, [_hasHydrated, funnelId, recordVisit])
 
   const funnel = funnels.find((f) => f.id === funnelId)
 
-  // Resolve which page to show
-  const page: FunnelPage | undefined = pageId
+  const requestedPage: FunnelPage | undefined = pageId
     ? funnel?.pages.find((p) => p.id === pageId)
     : funnel?.pages[0]
 
-  // Find current step index for navigation
-  const currentStep = funnel?.steps.find((s) => s.pageId === page?.id)
+  const requestedStep: FunnelStep | undefined = funnel?.steps.find((s) => {
+    if (!requestedPage) return false
+    if (s.pageId === requestedPage.id) return true
+    return s.variants?.some((v) => v.pageId === requestedPage.id) ?? false
+  })
+
+  const activeVariant = useMemo(() => {
+    if (!requestedStep) return null
+    return resolveVariant(requestedStep)
+    // bucketTick forces re-evaluation when user resets bucket
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedStep?.id, requestedStep?.variants, bucketTick])
+
+  const page: FunnelPage | undefined = activeVariant
+    ? funnel?.pages.find((p) => p.id === activeVariant.pageId)
+    : requestedPage
+
+  const currentStep = requestedStep
   const nextStep = currentStep?.nextStepId
     ? funnel?.steps.find((s) => s.id === currentStep.nextStepId)
     : null
   const nextPage = nextStep ? funnel?.pages.find((p) => p.id === nextStep.pageId) : null
+
+  useEffect(() => {
+    if (!_hasHydrated) return
+    if (!currentStep || !activeVariant) return
+    const key = `${currentStep.id}:${activeVariant.id}`
+    if (variantTrackedRef.current === key) return
+    variantTrackedRef.current = key
+    recordVariantVisit(funnelId, currentStep.id, activeVariant.id)
+  }, [_hasHydrated, funnelId, currentStep, activeVariant, recordVariantVisit])
 
   if (!_hasHydrated) {
     return (
@@ -54,6 +104,7 @@ export function PreviewPage({ funnelId, pageId }: Props) {
   }
 
   return (
+    <PreviewContext.Provider value={{ funnelId, stepId: currentStep?.id ?? null, variantId: activeVariant?.id ?? null }}>
     <div className="min-h-screen flex flex-col bg-gray-100">
       {/* Preview toolbar */}
       <div className="h-12 bg-gray-900 text-white flex items-center px-4 gap-3 shrink-0 z-50 fixed top-0 left-0 right-0">
@@ -72,6 +123,24 @@ export function PreviewPage({ funnelId, pageId }: Props) {
           <span className="text-gray-500">→</span>
           <span>{page.name}</span>
         </div>
+
+        {currentStep?.variants && activeVariant && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px]">
+            <FlaskConical className="w-3 h-3" />
+            <span className="font-medium">A/B: {activeVariant.name}</span>
+            <button
+              onClick={() => {
+                clearVariantBucket(currentStep.id)
+                variantTrackedRef.current = null
+                setBucketTick((t) => t + 1)
+              }}
+              title="Re-roll variant"
+              className="hover:text-white transition-colors ml-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+            </button>
+          </div>
+        )}
 
         <div className="flex-1" />
 
@@ -166,5 +235,6 @@ export function PreviewPage({ funnelId, pageId }: Props) {
         </div>
       </div>
     </div>
+    </PreviewContext.Provider>
   )
 }

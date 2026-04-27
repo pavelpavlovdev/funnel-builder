@@ -26,6 +26,121 @@ export type ElementType =
   | "guarantee"
   | "social_proof"
   | "faq"
+  | "order_bump"
+  | "exit_popup"
+
+export interface AnalyticsEvent {
+  id: string
+  type: "visit" | "optin" | "sale"
+  funnelId: string
+  stepId?: string
+  variantId?: string
+  amount?: number
+  timestamp: string
+  campaignId?: string
+}
+
+export type AdChannel = "meta" | "google" | "tiktok"
+
+export type AdObjective =
+  | "leads"
+  | "sales"
+  | "traffic"
+  | "awareness"
+  | "engagement"
+  | "app_installs"
+
+export type AdStatus = "draft" | "active" | "paused" | "completed"
+
+export interface AudienceTargeting {
+  countries: string[]
+  ageMin: number
+  ageMax: number
+  genders: ("male" | "female" | "all")[]
+  interests: string[]
+  customAudiences?: string[]
+  lookalikePct?: number
+}
+
+export interface AdCreative {
+  id: string
+  name?: string
+  headline: string
+  body: string
+  cta: string
+  imageUrl?: string
+  videoUrl?: string
+  stats?: AdCampaignStats
+}
+
+export type AdPlacement =
+  | "feed"
+  | "stories"
+  | "reels"
+  | "right_column"
+  | "marketplace"
+  | "search"
+  | "display"
+  | "youtube"
+  | "in_feed"
+  | "topview"
+
+export type BiddingStrategy = "lowest_cost" | "cost_cap" | "bid_cap" | "manual_cpc"
+
+export interface AdSchedule {
+  startDate: string
+  endDate?: string
+  daypartingEnabled?: boolean
+}
+
+export interface UTMParameters {
+  source?: string
+  medium?: string
+  campaign?: string
+  content?: string
+  term?: string
+}
+
+export interface AdCampaignStats {
+  spend: number
+  impressions: number
+  clicks: number
+  optins: number
+  sales: number
+  revenue: number
+}
+
+export interface AdCampaign {
+  id: string
+  name: string
+  channel: AdChannel
+  objective: AdObjective
+  status: AdStatus
+  funnelId: string
+  dailyBudget: number
+  totalBudget?: number
+  startDate: string
+  endDate?: string
+  audience: AudienceTargeting
+  creatives: AdCreative[]
+  stats: AdCampaignStats
+  createdAt: string
+  updatedAt: string
+  notes?: string
+  placements?: AdPlacement[]
+  bidding?: { strategy: BiddingStrategy; cap?: number }
+  utm?: UTMParameters
+  conversionEvent?: "optin" | "sale"
+}
+
+export interface OptimizationInsight {
+  id: string
+  campaignId: string
+  severity: "critical" | "warning" | "opportunity" | "info"
+  title: string
+  description: string
+  action?: { label: string; type: "scale_budget" | "pause" | "rotate_creative" | "narrow_audience" | "broaden_audience" | "improve_landing"; payload?: Record<string, unknown> }
+}
 
 export interface ElementStyle {
   // Typography
@@ -104,6 +219,14 @@ export interface FunnelPage {
   }
 }
 
+export interface StepVariant {
+  id: string
+  name: string
+  pageId: string
+  weight: number
+  stats: FunnelStats
+}
+
 export interface FunnelStep {
   id: string
   name: string
@@ -113,6 +236,7 @@ export interface FunnelStep {
   nextStepId?: string
   upsellStepId?: string
   downsellStepId?: string
+  variants?: StepVariant[]
 }
 
 export interface FunnelStats {
