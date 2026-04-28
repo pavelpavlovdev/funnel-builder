@@ -273,3 +273,14 @@ export interface FunnelTemplate {
   tags: string[]
   popular?: boolean
 }
+
+
+export interface GenerateFunnelResponse {
+  headline: string
+  subheadline: string
+  cta: string
+  adHeadline: string
+  adBody: string
+  audienceKeywords: string[]
+  funnelGoal: "leads" | "sales" | "traffic"
+}
