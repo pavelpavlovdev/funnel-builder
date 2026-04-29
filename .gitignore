@@ -42,3 +42,6 @@ next-env.d.ts
 
 # AI assistant local session
 .claude/
+
+# Telemetry data (local only — use DB in production)
+/data/

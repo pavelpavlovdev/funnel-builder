@@ -284,3 +284,60 @@ export interface GenerateFunnelResponse {
   audienceKeywords: string[]
   funnelGoal: "leads" | "sales" | "traffic"
 }
+
+export interface Contact {
+  id: string
+  email: string
+  name?: string
+  phone?: string
+  source: string
+  funnelId: string
+  tags: string[]
+  createdAt: string
+}
+
+export interface CustomDomain {
+  id: string
+  domain: string
+  verified: boolean
+  funnelIds: string[]
+  addedAt: string
+}
+
+export interface UserProfile {
+  firstName: string
+  lastName: string
+  email: string
+}
+
+export interface TelemetrySettings {
+  enabled: boolean
+  instanceId: string
+  lastSentAt: string | null
+}
+
+export interface TelemetryPayload {
+  instanceId: string
+  appVersion: string
+  sentAt: string
+  // funnels
+  funnelCount: number
+  activeFunnelCount: number
+  stepTypeDistribution: Record<string, number>
+  elementTypeDistribution: Record<string, number>
+  avgConversionRate: number
+  totalVisitors: number
+  totalOptins: number
+  totalSales: number
+  // campaigns
+  campaignCount: number
+  activeCampaignCount: number
+  activeChannels: string[]
+  avgROAS: number | null
+  // features used
+  abTestCount: number
+  contactCount: number
+  customDomainCount: number
+  // env
+  timezone: string
+}

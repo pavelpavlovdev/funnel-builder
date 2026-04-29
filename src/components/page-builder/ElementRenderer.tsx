@@ -36,6 +36,7 @@ export function ElementRenderer({ element }: Props) {
   const recordOptin = useFunnelStore((s) => s.recordOptin)
   const recordSale = useFunnelStore((s) => s.recordSale)
   const recordVariantConversion = useFunnelStore((s) => s.recordVariantConversion)
+  const addContact = useFunnelStore((s) => s.addContact)
 
   const trackOptin = () => {
     if (!previewCtx) return
@@ -112,7 +113,7 @@ export function ElementRenderer({ element }: Props) {
             style={{
               fontSize: style.fontSize || "2.5rem",
               fontWeight: style.fontWeight || "700",
-              textAlign: style.textAlign as "center" || "center",
+              textAlign: style.textAlign || "center",
               color: style.color || "#111827",
               lineHeight: "1.2",
             }}
@@ -128,7 +129,7 @@ export function ElementRenderer({ element }: Props) {
           <p
             style={{
               fontSize: style.fontSize || "1.1rem",
-              textAlign: style.textAlign as "center" || "center",
+              textAlign: style.textAlign || "center",
               color: style.color || "#6b7280",
               lineHeight: style.lineHeight || "1.7",
               maxWidth: "720px",
@@ -142,14 +143,14 @@ export function ElementRenderer({ element }: Props) {
 
     case "button":
       return (
-        <div style={{ padding: style.padding || "16px 24px", textAlign: (style.textAlign as "center") || "center" }}>
+        <div style={{ padding: style.padding || "16px 24px", textAlign: style.textAlign || "center" }}>
           <a
             href={props.url as string || "#"}
             className="inline-block font-bold rounded-xl transition-all hover:scale-105 hover:shadow-lg active:scale-95"
             style={{
               padding: props.size === "large" ? "20px 48px" : props.size === "small" ? "10px 24px" : "14px 36px",
               fontSize: props.size === "large" ? "1.2rem" : "1rem",
-              background: props.variant === "secondary" ? "#e5e7eb" : props.variant === "danger" ? "#ef4444" : "#6366f1",
+              background: props.variant === "secondary" ? "#e5e7eb" : props.variant === "danger" ? "#ef4444" : props.variant === "success" ? "#10b981" : "#6366f1",
               color: props.variant === "secondary" ? "#111827" : "#ffffff",
             }}
           >
@@ -163,7 +164,7 @@ export function ElementRenderer({ element }: Props) {
 
     case "image":
       return (
-        <div style={{ padding: style.padding || "16px 24px", textAlign: (style.textAlign as "center") || "center" }}>
+        <div style={{ padding: style.padding || "16px 24px", textAlign: style.textAlign || "center" }}>
           <img
             src={props.src as string}
             alt={props.alt as string || ""}
@@ -199,8 +200,23 @@ export function ElementRenderer({ element }: Props) {
             className="max-w-md mx-auto"
             onSubmit={(e) => {
               e.preventDefault()
-              trackOptin()
               const form = e.currentTarget as HTMLFormElement
+              if (previewCtx) {
+                const formData = new FormData(form)
+                const email = (formData.get("email") as string || "").trim()
+                if (email) {
+                  const funnel = useFunnelStore.getState().funnels.find((f) => f.id === previewCtx.funnelId)
+                  addContact({
+                    email,
+                    name: (formData.get("name") as string || "").trim() || undefined,
+                    phone: (formData.get("phone") as string || "").trim() || undefined,
+                    source: funnel?.name || "Unknown Funnel",
+                    funnelId: previewCtx.funnelId,
+                    tags: ["lead"],
+                  })
+                }
+              }
+              trackOptin()
               celebrateConversion(form.getBoundingClientRect())
               form.reset()
               const note = form.querySelector<HTMLElement>("[data-success-note]")
@@ -245,29 +261,7 @@ export function ElementRenderer({ element }: Props) {
       )
 
     case "countdown":
-      return (
-        <div style={{ padding: style.padding || "24px", textAlign: "center", backgroundColor: style.backgroundColor || "#fff7ed" }}>
-          {props.headline && (
-            <p className="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-3">
-              {props.headline as string}
-            </p>
-          )}
-          <div className="flex items-center justify-center gap-3">
-            {[
-              { label: "Hours", value: "00" },
-              { label: "Minutes", value: String(props.minutes || 15).padStart(2, "0") },
-              { label: "Seconds", value: "00" },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-white rounded-xl shadow-md flex items-center justify-center text-3xl font-black text-gray-900 border border-orange-100">
-                  {value}
-                </div>
-                <span className="text-xs font-medium text-amber-700 mt-1 uppercase">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
+      return <CountdownElement element={element} isLive={!!previewCtx} />
 
     case "testimonial":
       return (
@@ -466,6 +460,58 @@ export function ElementRenderer({ element }: Props) {
   }
 }
 
+function CountdownElement({ element, isLive }: { element: PageElement; isLive: boolean }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = element.props as any
+  const { style } = element
+  const totalSeconds = Math.max(0, Number(p.minutes || 15) * 60)
+  const [secs, setSecs] = React.useState(totalSeconds)
+
+  React.useEffect(() => {
+    if (!isLive) return
+    setSecs(totalSeconds)
+    const id = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000)
+    return () => window.clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLive, totalSeconds])
+
+  const expired = isLive && secs <= 0
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
+  const s = secs % 60
+  const pad = (n: number) => String(n).padStart(2, "0")
+
+  const units = [
+    { label: "Hours", value: isLive ? pad(h) : "00" },
+    { label: "Minutes", value: isLive ? pad(m) : String(p.minutes || 15).padStart(2, "0") },
+    { label: "Seconds", value: isLive ? pad(s) : "00" },
+  ]
+
+  return (
+    <div style={{ padding: style.padding || "24px", textAlign: "center", backgroundColor: style.backgroundColor || "#fff7ed" }}>
+      {p.headline && !expired && (
+        <p className="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-3">
+          {p.headline as string}
+        </p>
+      )}
+      {expired ? (
+        <p className="text-base font-bold text-red-600">{(p.expiredText as string) || "Offer expired!"}</p>
+      ) : (
+        <div className="flex items-center justify-center gap-3">
+          {units.map(({ label, value }) => (
+            <div key={label} className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-white rounded-xl shadow-md flex items-center justify-center text-3xl font-black text-gray-900 border border-orange-100">
+                {value}
+              </div>
+              <span className="text-xs font-medium text-amber-700 mt-1 uppercase">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function OrderBumpElement({
   element,
   previewMode,
@@ -635,7 +681,7 @@ function ExitPopupElement({
             onClick={() => setOpen(false)}
             className="mt-3 text-xs text-gray-400 hover:text-gray-700 underline"
           >
-            {p.dismissText as string}
+            {(p.dismissText as string) || "No thanks, I'll pass"}
           </button>
         </div>
       </div>

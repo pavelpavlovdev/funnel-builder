@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { useFunnelStore } from "@/lib/store/funnel-store"
 
 interface HeaderProps {
   title?: string
@@ -20,6 +21,10 @@ interface HeaderProps {
 }
 
 export function Header({ title, actions }: HeaderProps) {
+  const profile = useFunnelStore((s) => s.profile)
+  const initials = `${profile?.firstName?.[0] || "P"}${profile?.lastName?.[0] || "D"}`.toUpperCase()
+  const displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : "Pavel D."
+
   return (
     <header className="h-16 border-b bg-card flex items-center px-6 gap-4 shrink-0">
       {title && <h1 className="text-xl font-semibold text-foreground">{title}</h1>}
@@ -53,13 +58,13 @@ export function Header({ title, actions }: HeaderProps) {
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                  PD
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Pavel D.</DropdownMenuLabel>
+            <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Billing</DropdownMenuItem>

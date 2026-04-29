@@ -69,6 +69,11 @@ Rules:
     return Response.json({ error: "Failed to parse AI response" }, { status: 500 })
   }
 
-  const result = JSON.parse(jsonMatch[0]) as GenerateFunnelResponse
+  let result: GenerateFunnelResponse
+  try {
+    result = JSON.parse(jsonMatch[0]) as GenerateFunnelResponse
+  } catch {
+    return Response.json({ error: "Invalid JSON from AI response" }, { status: 500 })
+  }
   return Response.json(result)
 }

@@ -19,6 +19,7 @@ import {
   Legend,
   BarChart,
   Bar,
+  Cell,
 } from "recharts"
 
 const PERIOD_DAYS: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90, "1y": 365 }
@@ -365,9 +366,9 @@ function ABTestsSection({ funnels }: { funnels: import("@/lib/types").Funnel[] }
                           boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                         }}
                       />
-                      <Bar dataKey="conversion" radius={[6, 6, 0, 0]} fill="#6366f1">
+                      <Bar dataKey="conversion" radius={[6, 6, 0, 0]}>
                         {sortedVariants.map((v) => (
-                          <Bar key={v.id} dataKey="conversion" fill={winner?.id === v.id ? "#f59e0b" : "#6366f1"} />
+                          <Cell key={v.id} fill={winner?.id === v.id ? "#f59e0b" : "#6366f1"} />
                         ))}
                       </Bar>
                     </BarChart>

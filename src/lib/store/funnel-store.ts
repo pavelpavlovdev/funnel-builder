@@ -14,6 +14,10 @@ import type {
   AdStatus,
   AdCampaignStats,
   AdCreative,
+  Contact,
+  CustomDomain,
+  UserProfile,
+  TelemetrySettings,
 } from "@/lib/types"
 
 const MAX_EVENTS = 1000
@@ -135,6 +139,10 @@ interface FunnelStore {
   dashboardSnapshot: DashboardSnapshot | null
   events: AnalyticsEvent[]
   campaigns: AdCampaign[]
+  contacts: Contact[]
+  customDomains: CustomDomain[]
+  profile: UserProfile
+  telemetry: TelemetrySettings
   _hasHydrated: boolean
   setHasHydrated: (v: boolean) => void
 
@@ -166,6 +174,13 @@ interface FunnelStore {
   deleteCampaign: (id: string) => void
   setCampaignStatus: (id: string, status: AdStatus) => void
   recordCampaignBurst: (id: string, burst: { spend: number; impressions: number; clicks: number; optins: number; sales: number; revenue: number; creativeId?: string }) => void
+
+  addContact: (data: Omit<Contact, "id" | "createdAt">) => void
+  removeContact: (id: string) => void
+  addDomain: (domain: string) => void
+  removeDomain: (id: string) => void
+  updateProfile: (data: Partial<UserProfile>) => void
+  updateTelemetry: (data: Partial<TelemetrySettings>) => void
 
   enableSplitTest: (funnelId: string, stepId: string) => void
   disableSplitTest: (funnelId: string, stepId: string) => void
@@ -346,6 +361,10 @@ export const useFunnelStore = create<FunnelStore>()(
       dashboardSnapshot: null,
       events: [],
       campaigns: DEMO_CAMPAIGNS,
+      contacts: [],
+      customDomains: [],
+      profile: { firstName: "Pavel", lastName: "D.", email: "pavlovdevelop@gmail.com" },
+      telemetry: { enabled: false, instanceId: nanoid(), lastSentAt: null },
       _hasHydrated: false,
       setHasHydrated: (v: boolean) => set({ _hasHydrated: v }),
 
@@ -625,6 +644,24 @@ export const useFunnelStore = create<FunnelStore>()(
           ),
         })),
 
+      addContact: (data) => {
+        const contact: Contact = { ...data, id: nanoid(), createdAt: new Date().toISOString() }
+        set((s) => ({ contacts: [contact, ...s.contacts] }))
+      },
+
+      removeContact: (id) => set((s) => ({ contacts: s.contacts.filter((c) => c.id !== id) })),
+
+      addDomain: (domain) => {
+        const d: CustomDomain = { id: nanoid(), domain, verified: false, funnelIds: [], addedAt: new Date().toISOString() }
+        set((s) => ({ customDomains: [d, ...s.customDomains] }))
+      },
+
+      removeDomain: (id) => set((s) => ({ customDomains: s.customDomains.filter((d) => d.id !== id) })),
+
+      updateProfile: (data) => set((s) => ({ profile: { ...s.profile, ...data } })),
+
+      updateTelemetry: (data) => set((s) => ({ telemetry: { ...s.telemetry, ...data } })),
+
       enableSplitTest: (funnelId, stepId) => {
         const funnel = get().funnels.find((f) => f.id === funnelId)
         const step = funnel?.steps.find((s) => s.id === stepId)
@@ -824,7 +861,7 @@ export const useFunnelStore = create<FunnelStore>()(
     }),
     {
       name: "funnel-store",
-      version: 4,
+      version: 6,
       migrate: (persisted, fromVersion) => {
         const s = persisted as Partial<FunnelStore> | undefined
         if (!s) return s
@@ -861,6 +898,14 @@ export const useFunnelStore = create<FunnelStore>()(
             if (!ids.has(demo.id)) s.campaigns.push(demo)
           }
         }
+        if (fromVersion < 5) {
+          if (!s.contacts) s.contacts = []
+          if (!s.customDomains) s.customDomains = []
+          if (!s.profile) s.profile = { firstName: "Pavel", lastName: "D.", email: "pavlovdevelop@gmail.com" }
+        }
+        if (fromVersion < 6) {
+          if (!s.telemetry) s.telemetry = { enabled: false, instanceId: nanoid(), lastSentAt: null }
+        }
         return s
       },
       onRehydrateStorage: () => (state) => {
@@ -872,6 +917,10 @@ export const useFunnelStore = create<FunnelStore>()(
           }
           if (!state.campaigns) state.campaigns = DEMO_CAMPAIGNS
           if (!state.events) state.events = []
+          if (!state.contacts) state.contacts = []
+          if (!state.customDomains) state.customDomains = []
+          if (!state.profile) state.profile = { firstName: "Pavel", lastName: "D.", email: "pavlovdevelop@gmail.com" }
+          if (!state.telemetry) state.telemetry = { enabled: false, instanceId: nanoid(), lastSentAt: null }
           state.setHasHydrated(true)
         }
       },

@@ -2,13 +2,19 @@
 
 import { useEffect } from "react"
 import { useFunnelStore } from "@/lib/store/funnel-store"
+import { sendTelemetry } from "@/lib/telemetry"
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Mark store as hydrated after first client render.
-    // onRehydrateStorage also fires this, but useEffect covers the
-    // case where localStorage is empty and hydration never triggers.
     useFunnelStore.getState().setHasHydrated(true)
+
+    // Fire telemetry once per session if user opted in (respects 24h cooldown)
+    const { telemetry, updateTelemetry } = useFunnelStore.getState()
+    if (telemetry.enabled) {
+      sendTelemetry(telemetry.instanceId, telemetry.lastSentAt, (sentAt) => {
+        updateTelemetry({ lastSentAt: sentAt })
+      })
+    }
   }, [])
 
   return <>{children}</>

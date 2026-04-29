@@ -157,9 +157,8 @@ export function generateInsights(campaign: AdCampaign, funnel: Funnel | undefine
     ))
   }
 
-  // Frequency / fatigue heuristic
-  if (m.impressions / Math.max(1, (m.clicks * 100)) > 0.5 && m.daysActive >= 7) {
-    // crude fatigue estimate when same eyeballs see ad many times
+  // Frequency / fatigue heuristic: CTR has dropped below 0.7% after 7+ days with enough impressions
+  if (m.ctr < 0.7 && m.daysActive >= 7 && m.impressions > 5000) {
     insights.push(make(campaign.id, "info",
       "Possible creative fatigue at day " + m.daysActive,
       "After a week, even good creatives lose juice. Refresh the image or rewrite the hook to keep CTR up.",

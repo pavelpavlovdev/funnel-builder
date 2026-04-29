@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner"
 import { ElementRenderer } from "./ElementRenderer"
 import { useState, useRef } from "react"
+import { nanoid } from "nanoid"
 
 interface CanvasProps {
   page: FunnelPage
@@ -87,7 +88,7 @@ function SortableElement({
     e.stopPropagation()
     const copy: PageElement = {
       ...element,
-      id: Math.random().toString(36).slice(2),
+      id: nanoid(),
       props: { ...element.props },
       style: { ...element.style },
     }
